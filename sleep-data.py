@@ -1,32 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from garminconnect import Garmin
 from notion_client import Client
-from dotenv import load_dotenv
-import os
+from dotenv import load_dotenv, dotenv_values
 import pytz
+import os
 
 # Constants
 local_tz = pytz.timezone("Asia/Kuala_Lumpur")
 
 # Load environment variables
 load_dotenv()
+CONFIG = dotenv_values()
 
-def get_all_sleep_data(garmin):
-    """Fetch all available sleep data from Garmin."""
-    sleep_data = []
-    days_back = 0  # Start from today and go backwards
-
-    while True:
-        date = (datetime.today() - timedelta(days=days_back)).date().isoformat()
-        data = garmin.get_sleep_data(date)
-
-        if data and 'dailySleepDTO' in data and data['dailySleepDTO']:  
-            sleep_data.append(data)
-            days_back += 1  # Go back one more day
-        else:
-            break  # Stop when there's no more data
-
-    return sleep_data
+def get_sleep_data(garmin):
+    today = datetime.today().date()
+    return garmin.get_sleep_data(today.isoformat())
 
 def format_duration(seconds):
     minutes = (seconds or 0) // 60
@@ -48,7 +36,6 @@ def format_date_for_name(sleep_date):
     return datetime.strptime(sleep_date, "%Y-%m-%d").strftime("%d.%m.%Y") if sleep_date else "Unknown"
 
 def sleep_data_exists(client, database_id, sleep_date):
-    """Check if sleep data for the given date already exists in Notion."""
     query = client.databases.query(
         database_id=database_id,
         filter={"property": "Long Date", "date": {"equals": sleep_date}}
@@ -56,8 +43,7 @@ def sleep_data_exists(client, database_id, sleep_date):
     results = query.get('results', [])
     return results[0] if results else None  # Ensure it returns None instead of causing IndexError
 
-def create_sleep_data(client, database_id, sleep_data):
-    """Create a Notion entry for sleep data."""
+def create_sleep_data(client, database_id, sleep_data, skip_zero_sleep=True):
     daily_sleep = sleep_data.get('dailySleepDTO', {})
     if not daily_sleep:
         return
@@ -66,10 +52,10 @@ def create_sleep_data(client, database_id, sleep_data):
     total_sleep = sum(
         (daily_sleep.get(k, 0) or 0) for k in ['deepSleepSeconds', 'lightSleepSeconds', 'remSleepSeconds']
     )
-
-    # Skip if no recorded sleep
-    if total_sleep == 0:
-        print(f"Skipping sleep data for {sleep_date} (no sleep recorded)")
+    
+    
+    if skip_zero_sleep and total_sleep == 0:
+        print(f"Skipping sleep data for {sleep_date} as total sleep is 0")
         return
 
     properties = {
@@ -94,7 +80,9 @@ def create_sleep_data(client, database_id, sleep_data):
     print(f"Created sleep entry for: {sleep_date}")
 
 def main():
-    """Main function to fetch all sleep data and upload to Notion."""
+    load_dotenv()
+
+    # Initialize Garmin and Notion clients using environment variables
     garmin_email = os.getenv("GARMIN_EMAIL")
     garmin_password = os.getenv("GARMIN_PASSWORD")
     notion_token = os.getenv("NOTION_TOKEN")
@@ -105,11 +93,11 @@ def main():
     garmin.login()
     client = Client(auth=notion_token)
 
-    sleep_data_list = get_all_sleep_data(garmin)  # Fetch ALL available sleep data
-    for data in sleep_data_list:
+    data = get_sleep_data(garmin)
+    if data:
         sleep_date = data.get('dailySleepDTO', {}).get('calendarDate')
         if sleep_date and not sleep_data_exists(client, database_id, sleep_date):
-            create_sleep_data(client, database_id, data)
+            create_sleep_data(client, database_id, data, skip_zero_sleep=True)
 
 if __name__ == '__main__':
     main()
