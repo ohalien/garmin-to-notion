@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from garminconnect import Garmin
 from notion_client import Client
 from dotenv import load_dotenv
@@ -169,6 +169,25 @@ def activity_needs_update(existing_activity, new_activity):
         (not has_subactivity)  # If the property doesn't exist, we need an update
     )
 
+def convert_to_local_time(gmt_time_str, timezone_str='Asia/Kuala_Lumpur'):
+    # Parse the GMT time string into a datetime object
+    gmt_time = datetime.strptime(gmt_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+    
+    # Convert GMT to local time zone
+    local_tz = pytz.timezone(timezone_str)
+    gmt_time = gmt_time.replace(tzinfo=pytz.utc).astimezone(local_tz)
+    
+    return gmt_time
+
+def get_activity_end_time(start_time_str, duration_seconds):
+    # Convert start time to local time
+    start_time = convert_to_local_time(start_time_str)
+    
+    # Calculate end time by adding duration to start time
+    end_time = start_time + timedelta(seconds=duration_seconds)
+    
+    return start_time, end_time
+
 def create_activity(client, database_id, activity):
 
     # Create a new activity in the Notion database
@@ -178,12 +197,15 @@ def create_activity(client, database_id, activity):
         activity.get('activityType', {}).get('typeKey', 'Unknown'),
         activity_name
     )
+
+    # Get the start and end times
+    start_time, end_time = get_activity_end_time(activity_date, activity.get('duration', 0))
     
     # Get icon for the activity type
     icon_url = ACTIVITY_ICONS.get(activity_subtype if activity_subtype != activity_type else activity_type)
     
     properties = {
-        "Date": {"date": {"start": activity_date}},
+        "Date": {"date": {"start": start_time.isoformat(), "end": end_time.isoformat()}},
         "Activity Type": {"select": {"name": activity_type}},
         "Subactivity Type": {"select": {"name": activity_subtype}},
         "Activity Name": {"title": [{"text": {"content": activity_name}}]},
