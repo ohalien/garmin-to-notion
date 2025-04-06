@@ -169,14 +169,15 @@ def activity_needs_update(existing_activity, new_activity):
         (not has_subactivity)  # If the property doesn't exist, we need an update
     )
 
-def convert_to_local_time(gmt_time_str, timezone_str='Asia/Kuala_Lumpur'):
-    # Parse the GMT time string into a datetime object
-    gmt_time = datetime.strptime(gmt_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+def convert_to_local_time(gmt_time_str):
+    try:
+        # Try parsing with the original format
+        gmt_time = datetime.strptime(gmt_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except ValueError:
+        # If it doesn't match, try parsing without 'T' and 'Z'
+        gmt_time = datetime.strptime(gmt_time_str, '%Y-%m-%d %H:%M:%S')
     
-    # Convert GMT to local time zone
-    local_tz = pytz.timezone(timezone_str)
-    gmt_time = gmt_time.replace(tzinfo=pytz.utc).astimezone(local_tz)
-    
+    # Convert to local time if necessary
     return gmt_time
 
 def get_activity_end_time(start_time_str, duration_seconds):
