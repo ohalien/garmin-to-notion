@@ -170,24 +170,20 @@ def activity_needs_update(existing_activity, new_activity):
     )
 
 def create_activity(client, database_id, activity):
-    # Extract start time and calculate end time
-    activity_start_time = activity.get('startTimeGMT')  # Assume this is in ISO format
-    activity_duration = activity.get('duration', 0)  # Duration in seconds
-    
-    # Calculate end time by adding duration to start time
-    activity_end_time = (datetime.fromisoformat(activity_start_time) + timedelta(seconds=activity_duration)).isoformat()
 
+    # Create a new activity in the Notion database
+    activity_date = activity.get('startTimeGMT')
     activity_name = format_entertainment(activity.get('activityName', 'Unnamed Activity'))
     activity_type, activity_subtype = format_activity_type(
         activity.get('activityType', {}).get('typeKey', 'Unknown'),
         activity_name
     )
-
+    
     # Get icon for the activity type
     icon_url = ACTIVITY_ICONS.get(activity_subtype if activity_subtype != activity_type else activity_type)
     
     properties = {
-        "Date": {"date": {"start": activity_start_time, "end": activity_end_time}},  # Add both start and end time
+        "Date": {"date": {"start": activity_date}},
         "Activity Type": {"select": {"name": activity_type}},
         "Subactivity Type": {"select": {"name": activity_subtype}},
         "Activity Name": {"title": [{"text": {"content": activity_name}}]},
@@ -215,22 +211,16 @@ def create_activity(client, database_id, activity):
         page["icon"] = {"type": "external", "external": {"url": icon_url}}
     
     client.pages.create(**page)
-
     
 def update_activity(client, existing_activity, new_activity):
-    # Extract start time and calculate end time
-    activity_start_time = new_activity.get('startTimeGMT')
-    activity_duration = new_activity.get('duration', 0)
-    
-    # Calculate end time
-    activity_end_time = (datetime.fromisoformat(activity_start_time) + timedelta(seconds=activity_duration)).isoformat()
 
+    # Update an existing activity in the Notion database with new data
     activity_name = new_activity.get('activityName', 'Unnamed Activity')
     activity_type, activity_subtype = format_activity_type(
         new_activity.get('activityType', {}).get('typeKey', 'Unknown'),
         activity_name
     )
-
+    
     # Get icon for the activity type
     icon_url = ACTIVITY_ICONS.get(activity_subtype if activity_subtype != activity_type else activity_type)
     
@@ -249,8 +239,7 @@ def update_activity(client, existing_activity, new_activity):
         "Anaerobic": {"number": round(new_activity.get('anaerobicTrainingEffect', 0), 1)},
         "Anaerobic Effect": {"select": {"name": format_training_message(new_activity.get('anaerobicTrainingEffectMessage', 'Unknown'))}},
         "PR": {"checkbox": new_activity.get('pr', False)},
-        "Fav": {"checkbox": new_activity.get('favorite', False)},
-        "Date": {"date": {"start": activity_start_time, "end": activity_end_time}}  # Add start and end times
+        "Fav": {"checkbox": new_activity.get('favorite', False)}
     }
     
     update = {
@@ -262,7 +251,6 @@ def update_activity(client, existing_activity, new_activity):
         update["icon"] = {"type": "external", "external": {"url": icon_url}}
         
     client.pages.update(**update)
-
 
 def main():
     load_dotenv()
