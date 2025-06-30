@@ -97,7 +97,7 @@ def main():
     database_id = os.getenv("NOTION_SLEEP_DB_ID")
 
     # Fetch last 7 days of sleep data
-    sleep_data_list = get_sleep_data_range(garmin, days_back=7)
+    sleep_data_list = get_sleep_data_range(garmin, days_back=30)
 
     for data in sleep_data_list:
         sleep_date = data.get('dailySleepDTO', {}).get('calendarDate')
