@@ -183,7 +183,16 @@ def create_activity(client, database_id, activity):
     icon_url = ACTIVITY_ICONS.get(activity_subtype if activity_subtype != activity_type else activity_type)
     
     properties = {
-        "Date": {"date": {"start": activity_date}},
+        start_time = datetime.fromisoformat(activity.get('startTimeGMT').replace("Z", "+00:00"))
+end_time = start_time + timedelta(seconds=activity.get('duration', 0))
+
+"Date": {
+    "date": {
+        "start": start_time.isoformat(),
+        "end": end_time.isoformat()
+    }
+},
+
         "Activity Type": {"select": {"name": activity_type}},
         "Subactivity Type": {"select": {"name": activity_subtype}},
         "Activity Name": {"title": [{"text": {"content": activity_name}}]},
@@ -225,6 +234,16 @@ def update_activity(client, existing_activity, new_activity):
     icon_url = ACTIVITY_ICONS.get(activity_subtype if activity_subtype != activity_type else activity_type)
     
     properties = {
+        start_time = datetime.fromisoformat(new_activity.get('startTimeGMT').replace("Z", "+00:00"))
+end_time = start_time + timedelta(seconds=new_activity.get('duration', 0))
+
+"Date": {
+    "date": {
+        "start": start_time.isoformat(),
+        "end": end_time.isoformat()
+    }
+},
+
         "Activity Type": {"select": {"name": activity_type}},
         "Subactivity Type": {"select": {"name": activity_subtype}},
         "Distance (km)": {"number": round(new_activity.get('distance', 0) / 1000, 2)},
