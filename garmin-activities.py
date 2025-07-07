@@ -182,16 +182,16 @@ def create_activity(client, database_id, activity):
     # Get icon for the activity type
     icon_url = ACTIVITY_ICONS.get(activity_subtype if activity_subtype != activity_type else activity_type)
     
-    properties = {
-        start_time = datetime.fromisoformat(activity.get('startTimeGMT').replace("Z", "+00:00"))
+    start_time = datetime.fromisoformat(activity.get('startTimeGMT').replace("Z", "+00:00"))
 end_time = start_time + timedelta(seconds=activity.get('duration', 0))
 
-"Date": {
-    "date": {
-        "start": start_time.isoformat(),
-        "end": end_time.isoformat()
-    }
-},
+properties = {
+    "Date": {
+        "date": {
+            "start": start_time.isoformat(),
+            "end": end_time.isoformat()
+        }
+    },
 
         "Activity Type": {"select": {"name": activity_type}},
         "Subactivity Type": {"select": {"name": activity_subtype}},
@@ -233,16 +233,16 @@ def update_activity(client, existing_activity, new_activity):
     # Get icon for the activity type
     icon_url = ACTIVITY_ICONS.get(activity_subtype if activity_subtype != activity_type else activity_type)
     
-    properties = {
-        start_time = datetime.fromisoformat(new_activity.get('startTimeGMT').replace("Z", "+00:00"))
-end_time = start_time + timedelta(seconds=new_activity.get('duration', 0))
+  start_time = datetime.fromisoformat(activity.get('startTimeGMT').replace("Z", "+00:00"))
+end_time = start_time + timedelta(seconds=activity.get('duration', 0))
 
-"Date": {
-    "date": {
-        "start": start_time.isoformat(),
-        "end": end_time.isoformat()
-    }
-},
+properties = {
+    "Date": {
+        "date": {
+            "start": start_time.isoformat(),
+            "end": end_time.isoformat()
+        }
+    },
 
         "Activity Type": {"select": {"name": activity_type}},
         "Subactivity Type": {"select": {"name": activity_subtype}},
